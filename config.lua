@@ -4,7 +4,7 @@ Config = {}
 --   本番     : 'lb-phone'
 --   ローカル : 'mock_lb_phone'
 -- server.cfg では、ここで指定したリソースを本リソースより先に ensure すること。
-Config.PhoneResource = 'mock_lb_phone'
+Config.PhoneResource = 'lb-phone'
 
 -- カメラを開くコマンド
 Config.Command = 'phonecam'
