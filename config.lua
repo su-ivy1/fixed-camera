@@ -2,7 +2,8 @@ Config = {}
 
 -- 依存する lb-phone リソース名
 -- ローカルで挙動確認する場合は 'mock_lb_phone' に変更する
-Config.PhoneResource = 'lb-phone'
+-- Config.PhoneResource = 'lb-phone'
+Config.PhoneResource = 'mock_lb_phone'
 
 -- カメラを開くコマンド
 Config.Command = 'phonecam'
