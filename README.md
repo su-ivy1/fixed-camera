@@ -7,9 +7,18 @@ lb-phone のスマホカメラ機能を呼び出して撮影し、画像を lb-p
 独自の `CreateCam` / `RenderScriptCams` は使わず、lb-phone の client exports に
 委譲する方針。ESX / QBCore / ox_inventory には直接依存しない。
 
-## 機能 (MVP)
+## 機能
 
-- `/phonecam` … lb-phone の camera component を開く / 閉じる
+### custom app "Fixed Cam" (Phase 2)
+
+- lb-phone のホーム画面に **Fixed Cam** アプリを追加（`AddCustomApp`）
+- アプリ画面から「カメラを起動 / 固定・解除 / 終了」を操作
+- カメラ状態（IDLE / LIVE / FROZEN）を `SendCustomAppMessage` で UI にリアルタイム反映
+- resource stop 時に `RemoveCustomApp` でアプリを撤去
+
+### カメラ機能 (Phase 1 / 共通)
+
+- `/phonecam` … lb-phone の camera component を開く / 閉じる（コマンドからも利用可）
   - Photo モード / rear camera / flash off をデフォルトに起動
   - `saveToGallery = true`（撮影画像はギャラリーへ保存）
   - 撮影後は callback で `src` を受け取り F8 console に print
@@ -35,11 +44,13 @@ lb-phone のスマホカメラ機能を呼び出して撮影し、画像を lb-p
            main.lua
    ```
 
-   > ⚠️ `start` する名前は **フォルダ名** です。リポジトリを `fixed-camera` の
-   > まま置いた場合は名前を `fixed_phone_camera` に変更するか、その名前で start してください。
+   > ℹ️ `start` する名前は **フォルダ名** です。custom app の UI / アイコンの
+   > パスは `GetCurrentResourceName()` から導出されるため、フォルダ名は
+   > `fixed_phone_camera` でも `fixed-camera` でも動作します。以降の例では
+   > `fixed_phone_camera` を使いますが、実際のフォルダ名に読み替えてください。
 
 2. `server.cfg` に **lb-phone より後** で起動設定を追加する（下記）。
-3. サーバー再起動、またはコンソールで `refresh` → `start fixed_phone_camera`。
+3. サーバー再起動、またはコンソールで `refresh` → `start <フォルダ名>`。
 
 ## server.cfg への追加例（順番が重要）
 
@@ -66,6 +77,8 @@ lb-phone の exports に依存するため、**必ず `lb-phone` を先に `ensu
 | `Config.SaveToGallery` | `true` | 撮影画像をギャラリー保存 |
 | `Config.UseWalkableCam` | `true` | 起動時に `EnableWalkableCam` を呼ぶ |
 | `Config.WalkableSelfie` | `false` | `EnableWalkableCam(selfieMode)` の引数 |
+| `Config.UseCustomApp` | `true` | lb-phone の custom app として登録する |
+| `Config.App` | identifier / name / ui / icon など | custom app のメタ情報 |
 | `Config.Debug` | `true` | F8 console にデバッグログを出す |
 
 キーバインドは FiveM の **Settings → Key Bindings → FiveM** から変更可能。
@@ -76,6 +89,18 @@ lb-phone の exports に依存するため、**必ず `lb-phone` を先に `ensu
 - `EnableWalkableCam(selfieMode)` … 歩けるカメラを有効化
 - `DisableWalkableCam()` … 歩けるカメラを無効化（cleanup）
 - `ToggleCameraFrozen()` … カメラ固定 / 固定解除
+- `AddCustomApp(data)` / `RemoveCustomApp(identifier)` … custom app の登録 / 撤去
+- `SendCustomAppMessage(identifier, data)` … app UI へ状態を送信
+
+## custom app の UI
+
+`ui/index.html`（自己完結の HTML/CSS/JS）を `ui_page` として配信し、lb-phone の
+スマホ枠内に埋め込む。
+
+- UI → client: `fetchNui('openCamera' | 'toggleFrozen' | 'closeCamera')`
+- client → UI: `SendCustomAppMessage(id, { action='state', state='idle'|'live'|'frozen' })`
+
+client 側は `RegisterNUICallback` で受け、カメラ操作へ橋渡しする。
 
 参照: [LB Documentation / Client Exports](https://docs.lbscripts.com/phone/exports/client-exports/)
 

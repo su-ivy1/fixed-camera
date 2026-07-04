@@ -13,3 +13,11 @@ client_scripts {
     'config.lua',
     'client/main.lua',
 }
+
+-- lb-phone custom app の UI (Phase 2)
+ui_page 'ui/index.html'
+
+files {
+    'ui/index.html',
+    'ui/icon.svg',
+}

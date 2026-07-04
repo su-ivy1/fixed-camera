@@ -36,11 +36,14 @@ GTA5 / FiveM 向けに、[lb-phone](https://docs.lbscripts.com/phone/) のスマ
 ## リソース構成
 
 ```txt
-fixed_phone_camera/        -- 本体（lb-phone 連携）
+fixed_phone_camera/        -- 本体（lb-phone 連携 + custom app）
   fxmanifest.lua
   config.lua
   client/
     main.lua
+  ui/                      -- custom app の UI (Phase 2)
+    index.html
+    icon.svg
 
 mock_lb_phone/             -- ローカル開発用の lb-phone behavior mock
   fxmanifest.lua
@@ -215,9 +218,48 @@ lb-phone 本体が無い環境で挙動確認するための疑似実装。
 * cleanup
 * mock による挙動確認
 
-### Phase 2: 拡張
+### Phase 2: custom app 化（実装済み）
 
-* lb-phone custom app 化
-* 撮影後の後処理・UI
+* lb-phone のホーム画面に custom app "Fixed Cam" を追加（`AddCustomApp`）
+* アプリ UI（`ui/index.html`）からカメラ起動 / 固定・解除 / 終了を操作
+* `RegisterNUICallback` で UI → client を受け、カメラ操作へ橋渡し
+* `SendCustomAppMessage` で client → UI に状態（idle / live / frozen）を反映
+* resource stop 時に `RemoveCustomApp` でアプリを撤去
+
+### Phase 3: RP 向け拡張
+
+* 撮影後の後処理・高度な UI
 * job / item 連携
 * 他プレイヤー向け同期
+
+---
+
+## custom app 要件（Phase 2）
+
+参照: [LB Documentation / Custom Apps](https://docs.lbscripts.com/phone/custom-apps/)
+
+### fxmanifest
+
+* `ui_page 'ui/index.html'`
+* `files { 'ui/index.html', 'ui/icon.svg' }`
+
+### 登録 / 撤去
+
+* 自リソース起動時、および lb-phone 起動時に `AddCustomApp` で登録（多重登録しない）
+* `AddCustomApp` の主なフィールド: `identifier` / `name` / `description` /
+  `developer` / `defaultApp` / `ui` / `icon`
+* resource stop で `RemoveCustomApp(identifier)`
+
+### 双方向通信
+
+* UI → client: `fetchNui('openCamera' | 'toggleFrozen' | 'closeCamera')`
+  （lb-phone が iframe に注入する helper。未注入時は標準 NUI fetch にフォールバック）
+* client → UI: `SendCustomAppMessage(identifier, { action = 'state', state = ... })`
+* client は `RegisterNUICallback` で受け、既存のカメラ操作関数へ委譲する
+
+### 受け入れ条件（Phase 2）
+
+* lb-phone ホーム画面に Fixed Cam が表示される
+* アプリからカメラ起動・固定・終了ができる
+* カメラ状態が UI（IDLE / LIVE / FROZEN）に反映される
+* resource stop / restart でアプリが二重登録・残留しない

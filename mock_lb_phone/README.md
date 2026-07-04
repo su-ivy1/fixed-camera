@@ -18,6 +18,12 @@ camera で再現する。
 | `DisableWalkableCam()` | `RenderScriptCams(false, …)` + `DestroyCam` でカメラ終了・cleanup |
 | `IsWalkingCamEnabled()` | 疑似カメラ起動中かを boolean で返す |
 | `SaveToGallery(link)` | 実保存せず link を print |
+| `AddCustomApp(data)` / `RemoveCustomApp(id)` | custom app 登録 / 撤去（ログのみ、UI は描画しない） |
+| `SendCustomAppMessage(id, data)` | app UI への状態送信（ログのみ） |
+
+> mock には実スマホ UI が無いため、custom app の画面描画は確認できません。
+> custom app の UI 確認は実 lb-phone が必要です。mock では export 配線と
+> カメラ挙動（LIVE / FROZEN）の確認に利用してください。
 
 ## 視覚的な確認ポイント
 

@@ -167,6 +167,24 @@ exports('IsWalkingCamEnabled', function()
 end)
 
 --------------------------------------------------------------------------------
+-- custom app stubs (mock には実 UI が無いためログのみ)
+--------------------------------------------------------------------------------
+
+exports('AddCustomApp', function(data)
+    data = data or {}
+    log('AddCustomApp ->', tostring(data.identifier), '(' .. tostring(data.name) .. ')')
+end)
+
+exports('RemoveCustomApp', function(identifier)
+    log('RemoveCustomApp ->', tostring(identifier))
+end)
+
+exports('SendCustomAppMessage', function(identifier, data)
+    data = data or {}
+    log('SendCustomAppMessage ->', tostring(identifier), 'state=' .. tostring(data.state))
+end)
+
+--------------------------------------------------------------------------------
 -- resource stop cleanup
 --------------------------------------------------------------------------------
 

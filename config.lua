@@ -40,5 +40,22 @@ Config.UseWalkableCam = true
 -- EnableWalkableCam(selfieMode) の selfieMode 引数 (false = rear 想定)
 Config.WalkableSelfie = false
 
+-- lb-phone の custom app として登録するか (Phase 2)
+Config.UseCustomApp = true
+
+-- AddCustomApp に渡すメタ情報
+-- ui / icon の NUI パスはランタイムのリソース名にバインドされるため、
+-- フォルダ名を決め打ちせず GetCurrentResourceName() から導出する。
+local resourceName = GetCurrentResourceName()
+Config.App = {
+    identifier = 'fixed_phone_camera', -- lb-phone 内での一意な app ID (パスではない)
+    name = 'Fixed Cam',
+    description = 'lb-phone camera launcher with freeze toggle',
+    developer = 'nichicoma',
+    defaultApp = true, -- ホーム画面に最初から表示する
+    ui = resourceName .. '/ui/index.html',
+    icon = 'nui://' .. resourceName .. '/ui/icon.svg',
+}
+
 -- デバッグログを F8 console に出す
 Config.Debug = true

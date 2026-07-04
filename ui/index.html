@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fixed Cam</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+            color: #f2f4f8;
+            background: linear-gradient(160deg, #1c2029 0%, #0d0f14 100%);
+            user-select: none;
+        }
+        .app {
+            display: flex; flex-direction: column;
+            height: 100%; padding: 24px 20px;
+        }
+        header { text-align: center; margin-top: 8px; }
+        header h1 { font-size: 22px; font-weight: 600; letter-spacing: .3px; }
+        header p { font-size: 12px; opacity: .6; margin-top: 4px; }
+
+        .status {
+            margin: 28px auto;
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+        .badge {
+            font-size: 13px; font-weight: 600; letter-spacing: 1px;
+            padding: 6px 16px; border-radius: 999px;
+            background: #2a2f3a; color: #9aa3b2;
+            transition: all .2s ease;
+        }
+        .badge.live   { background: rgba(52,199,89,.18);  color: #34c759; }
+        .badge.frozen { background: rgba(255,69,58,.18);  color: #ff453a; }
+        .lens {
+            width: 92px; height: 92px; border-radius: 50%;
+            border: 4px solid #2a2f3a;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color .2s ease;
+        }
+        .lens.live   { border-color: #34c759; }
+        .lens.frozen { border-color: #ff453a; }
+        .lens span { font-size: 30px; }
+
+        .actions { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+        button {
+            width: 100%; padding: 15px; border: none; border-radius: 14px;
+            font-size: 15px; font-weight: 600; color: #fff; cursor: pointer;
+            transition: transform .05s ease, opacity .2s ease;
+        }
+        button:active { transform: scale(.97); }
+        button:disabled { opacity: .4; cursor: default; }
+        .primary { background: #0a84ff; }
+        .toggle  { background: #3a3f4b; }
+        .danger  { background: #ff453a; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Fixed Cam</h1>
+            <p>lb-phone camera launcher</p>
+        </header>
+
+        <div class="status">
+            <div id="lens" class="lens"><span>📷</span></div>
+            <div id="badge" class="badge">IDLE</div>
+        </div>
+
+        <div class="actions">
+            <button id="openBtn"   class="primary">カメラを起動</button>
+            <button id="freezeBtn" class="toggle" disabled>固定 / 解除</button>
+            <button id="closeBtn"  class="danger" disabled>終了</button>
+        </div>
+    </div>
+
+    <script>
+        // lb-phone は iframe に fetchNui / onNuiEvent を注入する。
+        // 開発中に未注入でも動くよう、標準 NUI fetch へフォールバックする。
+        const resource = (window.resourceName) || 'fixed_phone_camera';
+
+        function post(event, data) {
+            if (typeof window.fetchNui === 'function') {
+                return window.fetchNui(event, data || {});
+            }
+            return fetch(`https://${resource}/${event}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+                body: JSON.stringify(data || {})
+            }).catch(() => {});
+        }
+
+        const lens = document.getElementById('lens');
+        const badge = document.getElementById('badge');
+        const openBtn = document.getElementById('openBtn');
+        const freezeBtn = document.getElementById('freezeBtn');
+        const closeBtn = document.getElementById('closeBtn');
+
+        // client から届く状態更新を UI に反映
+        function applyState(state) {
+            const active = state === 'live' || state === 'frozen';
+            lens.className = 'lens' + (active ? ' ' + state : '');
+            badge.className = 'badge' + (active ? ' ' + state : '');
+            badge.textContent = state.toUpperCase();
+            freezeBtn.disabled = !active;
+            closeBtn.disabled = !active;
+            openBtn.disabled = active;
+        }
+
+        function handleMessage(payload) {
+            if (payload && payload.action === 'state' && payload.state) {
+                applyState(payload.state);
+            }
+        }
+
+        if (typeof window.onNuiEvent === 'function') {
+            window.onNuiEvent('state', handleMessage);
+        }
+        // SendCustomAppMessage / SendNUIMessage 双方のフォールバック
+        window.addEventListener('message', (e) => handleMessage(e.data));
+
+        openBtn.addEventListener('click',   () => post('openCamera'));
+        freezeBtn.addEventListener('click', () => post('toggleFrozen'));
+        closeBtn.addEventListener('click',  () => post('closeCamera'));
+
+        applyState('idle');
+    </script>
+</body>
+</html>
