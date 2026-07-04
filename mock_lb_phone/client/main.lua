@@ -185,6 +185,17 @@ exports('SendCustomAppMessage', function(identifier, data)
 end)
 
 --------------------------------------------------------------------------------
+-- mock 用コマンド: Fixed Cam ランチャー UI を開く
+-- 本物の lb-phone ではアプリアイコンのタップに相当する。mock には phone UI が
+-- 無いため、代わりにこのコマンドで fixed_phone_camera の NUI を開く。
+--------------------------------------------------------------------------------
+
+RegisterCommand('openfixedapp', function()
+    log('openfixedapp -> trigger fixed_phone_camera:openApp')
+    TriggerEvent('fixed_phone_camera:openApp')
+end, false)
+
+--------------------------------------------------------------------------------
 -- resource stop cleanup
 --------------------------------------------------------------------------------
 

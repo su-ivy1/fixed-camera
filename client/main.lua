@@ -9,8 +9,9 @@
 ]]
 
 local State = {
-    active = false, -- カメラ起動中かどうか
-    frozen = false, -- 固定中かどうか (UI 表示用。真の固定状態は lb-phone 側)
+    active = false,    -- カメラ起動中かどうか
+    frozen = false,    -- 固定中かどうか (UI 表示用。真の固定状態は lb-phone 側)
+    appUiOpen = false, -- 自前 NUI (mock 用ランチャー) を開いているか
 }
 
 --------------------------------------------------------------------------------
@@ -62,10 +63,46 @@ local function pushState()
     if State.active then
         state = State.frozen and 'frozen' or 'live'
     end
+    -- lb-phone 側のアプリ UI へ
     callPhone('SendCustomAppMessage', Config.App.identifier, {
         action = 'state',
         state = state,
     })
+    -- 自前 NUI (mock ランチャー) を開いている時はそちらへも反映
+    if State.appUiOpen then
+        SendNUIMessage({ action = 'state', state = state })
+    end
+end
+
+--------------------------------------------------------------------------------
+-- 自前 NUI ランチャーの表示制御 (mock 環境用)
+--
+-- 本物の lb-phone ではアプリ UI は lb-phone の iframe が描画するため、この
+-- 自前 NUI は開かれない (appUiOpen は false のまま)。mock には phone UI が
+-- 無いので、'fixed_phone_camera:openApp' トリガーで自前 NUI を開いて確認する。
+--------------------------------------------------------------------------------
+
+local function openApp()
+    if State.appUiOpen then
+        return
+    end
+    State.appUiOpen = true
+    SetNuiFocus(true, true) -- マウスカーソルでボタンを押せるようにする
+    SendNUIMessage({ action = 'setVisible', visible = true })
+    pushState()
+    dbg('app UI opened')
+end
+
+-- 自前 NUI を隠しフォーカスを解放する。開いていない時は何もしない
+-- (本物の lb-phone のフォーカスを奪わないためのガード)。
+local function hideApp()
+    if not State.appUiOpen then
+        return
+    end
+    State.appUiOpen = false
+    SendNUIMessage({ action = 'setVisible', visible = false })
+    SetNuiFocus(false, false)
+    dbg('app UI hidden')
 end
 
 --------------------------------------------------------------------------------
@@ -82,6 +119,10 @@ local function openCamera()
         print('[fixed_phone_camera] lb-phone が起動していません。ensure lb-phone を確認してください。')
         return
     end
+
+    -- カメラ起動時は自前 NUI を隠しフォーカスを解放する
+    -- (全画面 NUI でゲーム画面 / カメラ視点を覆わないため)
+    hideApp()
 
     -- 歩けるカメラを有効化 (設定時のみ)
     if Config.UseWalkableCam then
@@ -113,6 +154,9 @@ local function closeCamera()
     if Config.UseWalkableCam then
         callPhone('DisableWalkableCam')
     end
+
+    -- 念のため NUI 表示 / フォーカスも確実に解除する
+    hideApp()
 
     State.active = false
     State.frozen = false
@@ -194,6 +238,12 @@ RegisterNUICallback('closeCamera', function(_, cb)
     cb({ ok = true })
 end)
 
+-- 自前 NUI ランチャーを開くトリガー。
+-- mock の /openfixedapp から TriggerEvent される (本物の lb-phone では未使用)。
+AddEventHandler('fixed_phone_camera:openApp', function()
+    openApp()
+end)
+
 -- 自リソース起動時と、lb-phone が後から起動した時に app を登録する
 AddEventHandler('onClientResourceStart', function(resource)
     if resource == GetCurrentResourceName() or resource == Config.PhoneResource then
@@ -247,7 +297,11 @@ AddEventHandler('onClientResourceStop', function(resource)
         callPhone('DisableWalkableCam')
         unregisterApp()
     end
+    -- NUI 表示 / フォーカスを確実に解放する (フォーカス残留を防ぐ)
+    hideApp()
+    SetNuiFocus(false, false)
     State.active = false
     State.frozen = false
+    State.appUiOpen = false
     dbg('cleanup on resource stop')
 end)

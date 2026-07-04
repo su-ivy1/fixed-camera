@@ -6,17 +6,23 @@
     <title>Fixed Cam</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* body は透明にしておき、NUI フレームが常時ゲーム画面を覆わないようにする */
         html, body {
             width: 100%; height: 100%;
+            background: transparent;
+            user-select: none;
+        }
+        /* 既定は非表示。openApp メッセージ受信時のみ .visible を付けて表示する */
+        .app {
+            display: none;
+            flex-direction: column;
+            height: 100%; padding: 24px 20px;
             font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
             color: #f2f4f8;
             background: linear-gradient(160deg, #1c2029 0%, #0d0f14 100%);
-            user-select: none;
         }
-        .app {
-            display: flex; flex-direction: column;
-            height: 100%; padding: 24px 20px;
-        }
+        .app.visible { display: flex; }
+
         header { text-align: center; margin-top: 8px; }
         header h1 { font-size: 22px; font-weight: 600; letter-spacing: .3px; }
         header p { font-size: 12px; opacity: .6; margin-top: 4px; }
@@ -57,7 +63,7 @@
     </style>
 </head>
 <body>
-    <div class="app">
+    <div id="app" class="app">
         <header>
             <h1>Fixed Cam</h1>
             <p>lb-phone camera launcher</p>
@@ -78,26 +84,40 @@
     <script>
         // lb-phone は iframe に fetchNui / onNuiEvent を注入する。
         // 開発中に未注入でも動くよう、標準 NUI fetch へフォールバックする。
-        const resource = (window.resourceName) || 'fixed_phone_camera';
+        // リソース名は実行時のホスト名 (cfx-nui-<resource>) から導出し、
+        // フォルダ名を決め打ちしない。
+        function resourceName() {
+            var host = (window.location && window.location.hostname) || '';
+            if (host.indexOf('cfx-nui-') === 0) {
+                return host.substring('cfx-nui-'.length);
+            }
+            return window.resourceName || 'fixed_phone_camera';
+        }
 
         function post(event, data) {
             if (typeof window.fetchNui === 'function') {
                 return window.fetchNui(event, data || {});
             }
-            return fetch(`https://${resource}/${event}`, {
+            return fetch(`https://${resourceName()}/${event}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json; charset=UTF-8' },
                 body: JSON.stringify(data || {})
             }).catch(() => {});
         }
 
+        const app = document.getElementById('app');
         const lens = document.getElementById('lens');
         const badge = document.getElementById('badge');
         const openBtn = document.getElementById('openBtn');
         const freezeBtn = document.getElementById('freezeBtn');
         const closeBtn = document.getElementById('closeBtn');
 
-        // client から届く状態更新を UI に反映
+        // アプリ画面の表示 / 非表示
+        function setVisible(visible) {
+            app.classList.toggle('visible', !!visible);
+        }
+
+        // client から届くカメラ状態を UI に反映
         function applyState(state) {
             const active = state === 'live' || state === 'frozen';
             lens.className = 'lens' + (active ? ' ' + state : '');
@@ -109,15 +129,19 @@
         }
 
         function handleMessage(payload) {
-            if (payload && payload.action === 'state' && payload.state) {
+            if (!payload) return;
+            if (payload.action === 'setVisible') {
+                setVisible(payload.visible);
+            } else if (payload.action === 'state' && payload.state) {
                 applyState(payload.state);
             }
         }
 
         if (typeof window.onNuiEvent === 'function') {
+            window.onNuiEvent('setVisible', handleMessage);
             window.onNuiEvent('state', handleMessage);
         }
-        // SendCustomAppMessage / SendNUIMessage 双方のフォールバック
+        // SendNUIMessage / SendCustomAppMessage 双方のフォールバック
         window.addEventListener('message', (e) => handleMessage(e.data));
 
         openBtn.addEventListener('click',   () => post('openCamera'));
@@ -125,6 +149,7 @@
         closeBtn.addEventListener('click',  () => post('closeCamera'));
 
         applyState('idle');
+        setVisible(false); // 起動直後は非表示
     </script>
 </body>
 </html>

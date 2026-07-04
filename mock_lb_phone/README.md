@@ -42,7 +42,14 @@ camera で再現する。
    ```
 
 3. FiveM 接続後：
+   - サーバー参加直後は Fixed Cam UI が **表示されない**（フォーカスも無い）
    - `/phonecam` → 疑似カメラ起動（`MOCK CAM: LIVE`）＋ F8 に擬似撮影ログ・`SaveToGallery -> mock://photo/test-image.png`
    - `X` → `FROZEN` になり視点固定 / もう一度で `LIVE` に戻り追従再開
    - `/phonecam`（2回目）→ `DisableWalkableCam` でカメラ終了・通常視点へ
-   - `restart mock_lb_phone` してもカメラが残らない
+   - `/openfixedapp` → **その時だけ** Fixed Cam ランチャー UI が開き、マウス
+     カーソルでボタンを操作できる（`SetNuiFocus(true, true)`）
+   - ランチャーの「カメラを起動」→ UI が閉じフォーカス解放され、疑似カメラ起動
+   - `restart mock_lb_phone` してもカメラ・NUI フォーカスが残らない
+
+> mock には本物のスマホ UI が無いため、`/openfixedapp` は「アプリアイコンの
+> タップ」を代替するコマンドです（`fixed_phone_camera:openApp` を TriggerEvent）。
