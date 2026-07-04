@@ -58,7 +58,9 @@ mock_lb_phone/             -- ローカル開発用の lb-phone behavior mock
 
 * `fx_version 'cerulean'`
 * `game 'gta5'`
-* `dependency 'lb-phone'`
+* `dependency` は宣言しない（依存する電話リソースは `Config.PhoneResource` で
+  切り替えるため、特定リソース名に固定しない。存在確認は runtime の
+  `GetResourceState`、起動順は `server.cfg` の `ensure` 順で担保する）
 * client scripts として `config.lua` と `client/main.lua` を読み込む
 
 ---
@@ -67,7 +69,7 @@ mock_lb_phone/             -- ローカル開発用の lb-phone behavior mock
 
 | キー | デフォルト | 説明 |
 | --- | --- | --- |
-| `Config.PhoneResource` | `'lb-phone'` | 依存する lb-phone リソース名（mock 時は `'mock_lb_phone'`） |
+| `Config.PhoneResource` | `'lb-phone'` | 依存する電話リソース名（本番/mock 切替はここ 1 箇所。mock 時は `'mock_lb_phone'`） |
 | `Config.Command` | `'phonecam'` | カメラ開閉コマンド |
 | `Config.ToggleFrozenKeyCommand` | `'+phonecam_freeze'` | 固定トグル用の内部コマンド |
 | `Config.DefaultKey` | `'X'` | 固定トグルのデフォルトキー |

@@ -27,8 +27,14 @@ lb-phone のスマホカメラ機能を呼び出して撮影し、画像を lb-p
 
 ## 依存関係
 
-- **lb-phone**（必須）。`fxmanifest.lua` に `dependency 'lb-phone'` を宣言済み。
-- lb-phone が起動していない場合はエラーにせず、`/phonecam` 実行時に通知 print する。
+- **lb-phone**（本番）または **mock_lb_phone**（ローカル）。どちらに依存するかは
+  `config.lua` の **`Config.PhoneResource` 1 行だけ**で切り替える。
+  - 本番: `Config.PhoneResource = 'lb-phone'`
+  - ローカル: `Config.PhoneResource = 'mock_lb_phone'`
+- `fxmanifest.lua` に `dependency` は宣言しない（特定リソース名に固定されると
+  mock 単体起動を妨げるため）。起動順は `server.cfg` の `ensure` 順、存在確認は
+  runtime の `GetResourceState` で担保する。
+- 電話リソースが起動していない場合はエラーにせず、`/phonecam` 実行時に通知 print する。
 
 ## インストール
 
@@ -49,26 +55,28 @@ lb-phone のスマホカメラ機能を呼び出して撮影し、画像を lb-p
    > `fixed_phone_camera` でも `fixed-camera` でも動作します。以降の例では
    > `fixed_phone_camera` を使いますが、実際のフォルダ名に読み替えてください。
 
-2. `server.cfg` に **lb-phone より後** で起動設定を追加する（下記）。
+2. `server.cfg` に **電話リソースより後** で起動設定を追加する（下記）。
 3. サーバー再起動、またはコンソールで `refresh` → `start <フォルダ名>`。
 
 ## server.cfg への追加例（順番が重要）
 
 ```cfg
-# 依存先を先に起動
+# 依存先 (Config.PhoneResource で指定したリソース) を先に起動
 ensure lb-phone
 
-# 本リソースは lb-phone の後
+# 本リソースは電話リソースの後
 ensure fixed_phone_camera
 ```
 
-lb-phone の exports に依存するため、**必ず `lb-phone` を先に `ensure`** すること。
+`Config.PhoneResource` の exports に依存するため、**必ず電話リソースを先に
+`ensure`** すること。ローカルで mock を使う場合は `ensure lb-phone` の行を
+`ensure mock_lb_phone` に置き換える。
 
 ## 設定 (config.lua)
 
 | キー | デフォルト | 説明 |
 | --- | --- | --- |
-| `Config.PhoneResource` | `'lb-phone'` | 依存する lb-phone のリソース名 |
+| `Config.PhoneResource` | `'lb-phone'` | 依存する電話リソース名（**本番/mock 切替はここ 1 箇所**） |
 | `Config.Command` | `'phonecam'` | カメラ開閉コマンド |
 | `Config.ToggleFrozenKeyCommand` | `'+phonecam_freeze'` | 固定トグル用の内部コマンド |
 | `Config.DefaultKey` | `'X'` | 固定トグルのデフォルトキー |

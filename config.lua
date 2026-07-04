@@ -1,8 +1,9 @@
 Config = {}
 
--- 依存する lb-phone リソース名
--- ローカルで挙動確認する場合は 'mock_lb_phone' に変更する
--- Config.PhoneResource = 'lb-phone'
+-- 依存する電話リソース名。本番 / mock の切替はこの 1 行だけで完結する。
+--   本番     : 'lb-phone'
+--   ローカル : 'mock_lb_phone'
+-- server.cfg では、ここで指定したリソースを本リソースより先に ensure すること。
 Config.PhoneResource = 'mock_lb_phone'
 
 -- カメラを開くコマンド
